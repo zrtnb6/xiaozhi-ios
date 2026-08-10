@@ -116,6 +116,10 @@ A SwiftUI-based iOS client for the "xiaozhi" AI assistant, featuring a Live2D av
 - [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) —— 小智 AI 硬件开源生态
 - [Live2D](https://www.live2d.com/) —— Cubism SDK 与示例模型
 
+### 定制联系
+
+如需定制开发或商业合作，请联系：https://webui.xiao-o.cn/login
+
 ---
 
 ## English
@@ -225,3 +229,7 @@ This project's own source code (excluding the third-party assets above) is relea
 
 - [xiaozhi-esp32](https://github.com/78/xiaozhi-esp32) — The open-source xiaozhi AI hardware ecosystem
 - [Live2D](https://www.live2d.com/) — Cubism SDK and sample models
+
+### Custom Development
+
+For custom development or commercial collaboration, please visit: https://webui.xiao-o.cn/login
