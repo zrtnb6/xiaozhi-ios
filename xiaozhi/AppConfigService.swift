@@ -15,7 +15,7 @@ class AppConfigService: ObservableObject {
     @Published var isFullFeatureEnabled: Bool = false
     
     // 接口地址
-    private let configURL = URL(string: "https://aichatbot-api.yy2app.cn/api/v1/common/app-bootstrap-config")!
+    private let configURL = URL(string: "")!
     
     private init() {
         //fetchConfig()
