@@ -33,9 +33,9 @@ jobs:
           cd xiaozhi-ios
           curl -fsSL "https://github.com/ybrid/opus-swift/releases/download/0.8.0/YbridOpus.xcframework.zip" -o YbridOpus.xcframework.zip
           unzip -q YbridOpus.xcframework.zip
-          mkdir -p ~/Downloads
-          cp -R YbridOpus.xcframework ~/Downloads/
-          ls -la ~/Downloads/YbridOpus.xcframework
+          mkdir -p Downloads
+          cp -R YbridOpus.xcframework Downloads/
+          ls -la Downloads/YbridOpus.xcframework
 
       - name: 编译 iOS
         env:
