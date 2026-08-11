@@ -43,19 +43,45 @@ jobs:
           
           rm -rf "$dd"
           mkdir -p "$archivesPath"
-          mkdir -p "$builtPath"
+          mkdir -p "$builtPath/Archive-iphoneos"
+          mkdir -p "$builtPath/Archive-iphonesimulator"
           
           pj="-project opus-swift.xcodeproj"
           
-          # Build for iphoneos
+          # Build for iphoneos (disable code signing + use only arm64)
           echo "Building for iphoneos..."
-          xcodebuild archive $pj -scheme opus_ios -destination="iOS" -sdk iphoneos -derivedDataPath "$dd" -archivePath "$archivesPath/iphoneos.xcarchive" SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
-          cp -R "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphoneos/"
+          xcodebuild archive $pj -scheme opus_ios \
+            -destination="iOS" -sdk iphoneos \
+            -derivedDataPath "$dd" \
+            -archivePath "$archivesPath/iphoneos.xcarchive" \
+            SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            ARCHS="arm64"
           
-          # Build for iphonesimulator
+          if [ -d "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" ]; then
+            cp -R "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphoneos/"
+            echo "✓ iphoneos framework copied"
+          else
+            echo "✗ iphoneos framework not found"
+            ls -la "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/" 2>/dev/null || echo "No Frameworks dir"
+          fi
+          
+          # Build for iphonesimulator (disable code signing + use only x86_64 + arm64)
           echo "Building for iphonesimulator..."
-          xcodebuild archive $pj -scheme opus_ios -destination="iOS Simulator" -sdk iphonesimulator -derivedDataPath "$dd" -archivePath "$archivesPath/iphonesimulator.xcarchive" SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
-          cp -R "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphonesimulator/"
+          xcodebuild archive $pj -scheme opus_ios \
+            -destination="iOS Simulator" -sdk iphonesimulator \
+            -derivedDataPath "$dd" \
+            -archivePath "$archivesPath/iphonesimulator.xcarchive" \
+            SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            ARCHS="arm64 x86_64"
+          
+          if [ -d "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" ]; then
+            cp -R "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphonesimulator/"
+            echo "✓ iphonesimulator framework copied"
+          else
+            echo "✗ iphonesimulator framework not found"
+          fi
           
           # Create XCFramework
           echo "Creating XCFramework..."
@@ -66,6 +92,7 @@ jobs:
           
           # 复制到 Downloads 目录
           mkdir -p ~/Downloads
+          rm -rf ~/Downloads/YbridOpus.xcframework
           cp -R "YbridOpus.xcframework" ~/Downloads/
           echo "XCFramework created at:"
           ls -la ~/Downloads/YbridOpus.xcframework
