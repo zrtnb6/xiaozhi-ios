@@ -1,0 +1,72 @@
+name: xiaozhi iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Build flavor'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: 安装 Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16'
+
+      - name: 编译 iOS
+        env:
+          BUILD_FLAVOR: ${{ inputs.flavor || 'release' }}
+        run: |
+          if [[ "$BUILD_FLAVOR" == "release" ]]; then
+            xcodebuild -project xiaozhi.xcodeproj \
+              -scheme xiaozhi \
+              -sdk iphoneos \
+              -configuration Release \
+              -derivedDataPath build \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              clean build
+          else
+            xcodebuild -project xiaozhi.xcodeproj \
+              -scheme xiaozhi \
+              -sdk iphoneos \
+              -configuration Debug \
+              -derivedDataPath build \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              clean build
+          fi
+
+      - name: 打包 IPA
+        run: |
+          # 找到 .app 文件
+          APP_PATH=$(find build -name "xiaozhi.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          
+          # 创建 Payload 并打包
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r xiaozhi.ipa Payload
+          ls -lh xiaozhi.ipa
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: xiaozhi-ios-${{ inputs.flavor || 'release' }}-${{ github.run_number }}
+          path: xiaozhi.ipa
+          if-no-files-found: warn
+          retention-days: 3
