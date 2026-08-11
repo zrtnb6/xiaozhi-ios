@@ -17,8 +17,11 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - name: 检出 xiaozhi-ios 代码
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: 克隆 xiaozhi-ios 代码
+        run: |
+          git clone --depth 1 https://github.com/zrtnb6/xiaozhi-ios.git
+          cd xiaozhi-ios
+          git log --oneline -1
 
       - name: 安装 Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -27,18 +30,18 @@ jobs:
 
       - name: 下载 YbridOpus.xcframework
         run: |
-          # 从 ybrid/opus-swift 0.8.0 release 下载预编译框架
+          cd xiaozhi-ios
           curl -fsSL "https://github.com/ybrid/opus-swift/releases/download/0.8.0/YbridOpus.xcframework.zip" -o YbridOpus.xcframework.zip
           unzip -q YbridOpus.xcframework.zip
           mkdir -p ~/Downloads
           cp -R YbridOpus.xcframework ~/Downloads/
-          echo "XCFramework installed:"
           ls -la ~/Downloads/YbridOpus.xcframework
 
       - name: 编译 iOS
         env:
           BUILD_FLAVOR: ${{ inputs.flavor || 'release' }}
         run: |
+          cd xiaozhi-ios
           if [[ "$BUILD_FLAVOR" == "release" ]]; then
             xcodebuild -project xiaozhi.xcodeproj \
               -scheme xiaozhi \
@@ -63,6 +66,7 @@ jobs:
 
       - name: 打包 IPA
         run: |
+          cd xiaozhi-ios
           APP_PATH=$(find build -name "xiaozhi.app" -type d | head -1)
           echo "Found app at: $APP_PATH"
           mkdir -p Payload
@@ -74,6 +78,6 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: xiaozhi-ios-${{ inputs.flavor || 'release' }}-${{ github.run_number }}
-          path: xiaozhi.ipa
+          path: xiaozhi-ios/xiaozhi.ipa
           if-no-files-found: warn
           retention-days: 3
