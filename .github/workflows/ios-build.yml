@@ -34,11 +34,40 @@ jobs:
       - name: 构建 YbridOpus.xcframework
         run: |
           cd opus-swift
-          chmod +x build.sh
-          ./build.sh
-          # 复制框架到 Downloads 目录（项目引用的路径）
+          
+          # 手动构建 XCFramework
+          dd="./DerivedData"
+          archivesPath="$dd/Archives"
+          builtPath="$dd/Build/Products"
+          framework="YbridOpus.framework"
+          
+          rm -rf "$dd"
+          mkdir -p "$archivesPath"
+          mkdir -p "$builtPath"
+          
+          pj="-project opus-swift.xcodeproj"
+          
+          # Build for iphoneos
+          echo "Building for iphoneos..."
+          xcodebuild archive $pj -scheme opus_ios -destination="iOS" -sdk iphoneos -derivedDataPath "$dd" -archivePath "$archivesPath/iphoneos.xcarchive" SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
+          cp -R "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphoneos/"
+          
+          # Build for iphonesimulator
+          echo "Building for iphonesimulator..."
+          xcodebuild archive $pj -scheme opus_ios -destination="iOS Simulator" -sdk iphonesimulator -derivedDataPath "$dd" -archivePath "$archivesPath/iphonesimulator.xcarchive" SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
+          cp -R "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphonesimulator/"
+          
+          # Create XCFramework
+          echo "Creating XCFramework..."
+          xcodebuild -quiet -create-xcframework \
+            -framework "$builtPath/Archive-iphoneos/$framework" \
+            -framework "$builtPath/Archive-iphonesimulator/$framework" \
+            -output "YbridOpus.xcframework"
+          
+          # 复制到 Downloads 目录
           mkdir -p ~/Downloads
-          cp -R YbridOpus.xcframework ~/Downloads/
+          cp -R "YbridOpus.xcframework" ~/Downloads/
+          echo "XCFramework created at:"
           ls -la ~/Downloads/YbridOpus.xcframework
 
       - name: 编译 iOS
