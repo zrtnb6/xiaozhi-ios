@@ -15,15 +15,31 @@ on:
 jobs:
   build-ios:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - name: 检出代码
+      - name: 检出 xiaozhi-ios 代码
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: 检出 opus-swift 代码
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          repository: oneplacethemall/opus-swift
+          path: opus-swift
 
       - name: 安装 Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16'
+
+      - name: 构建 YbridOpus.xcframework
+        run: |
+          cd opus-swift
+          chmod +x build.sh
+          ./build.sh
+          # 复制框架到 Downloads 目录（项目引用的路径）
+          mkdir -p ~/Downloads
+          cp -R YbridOpus.xcframework ~/Downloads/
+          ls -la ~/Downloads/YbridOpus.xcframework
 
       - name: 编译 iOS
         env:
