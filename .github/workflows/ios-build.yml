@@ -15,86 +15,24 @@ on:
 jobs:
   build-ios:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: 检出 xiaozhi-ios 代码
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: 检出 opus-swift 代码
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          repository: oneplacethemall/opus-swift
-          path: opus-swift
 
       - name: 安装 Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16'
 
-      - name: 构建 YbridOpus.xcframework
+      - name: 下载 YbridOpus.xcframework
         run: |
-          cd opus-swift
-          
-          # 手动构建 XCFramework
-          dd="./DerivedData"
-          archivesPath="$dd/Archives"
-          builtPath="$dd/Build/Products"
-          framework="YbridOpus.framework"
-          
-          rm -rf "$dd"
-          mkdir -p "$archivesPath"
-          mkdir -p "$builtPath/Archive-iphoneos"
-          mkdir -p "$builtPath/Archive-iphonesimulator"
-          
-          pj="-project opus-swift.xcodeproj"
-          
-          # Build for iphoneos (disable code signing + use only arm64)
-          echo "Building for iphoneos..."
-          xcodebuild archive $pj -scheme opus_ios \
-            -destination="iOS" -sdk iphoneos \
-            -derivedDataPath "$dd" \
-            -archivePath "$archivesPath/iphoneos.xcarchive" \
-            SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            ARCHS="arm64"
-          
-          if [ -d "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" ]; then
-            cp -R "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphoneos/"
-            echo "✓ iphoneos framework copied"
-          else
-            echo "✗ iphoneos framework not found"
-            ls -la "$archivesPath/iphoneos.xcarchive/Products/Library/Frameworks/" 2>/dev/null || echo "No Frameworks dir"
-          fi
-          
-          # Build for iphonesimulator (disable code signing + use only x86_64 + arm64)
-          echo "Building for iphonesimulator..."
-          xcodebuild archive $pj -scheme opus_ios \
-            -destination="iOS Simulator" -sdk iphonesimulator \
-            -derivedDataPath "$dd" \
-            -archivePath "$archivesPath/iphonesimulator.xcarchive" \
-            SKIP_INSTALL=NO BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            ARCHS="arm64 x86_64"
-          
-          if [ -d "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" ]; then
-            cp -R "$archivesPath/iphonesimulator.xcarchive/Products/Library/Frameworks/$framework" "$builtPath/Archive-iphonesimulator/"
-            echo "✓ iphonesimulator framework copied"
-          else
-            echo "✗ iphonesimulator framework not found"
-          fi
-          
-          # Create XCFramework
-          echo "Creating XCFramework..."
-          xcodebuild -quiet -create-xcframework \
-            -framework "$builtPath/Archive-iphoneos/$framework" \
-            -framework "$builtPath/Archive-iphonesimulator/$framework" \
-            -output "YbridOpus.xcframework"
-          
-          # 复制到 Downloads 目录
+          # 从 ybrid/opus-swift 0.8.0 release 下载预编译框架
+          curl -fsSL "https://github.com/ybrid/opus-swift/releases/download/0.8.0/YbridOpus.xcframework.zip" -o YbridOpus.xcframework.zip
+          unzip -q YbridOpus.xcframework.zip
           mkdir -p ~/Downloads
-          rm -rf ~/Downloads/YbridOpus.xcframework
-          cp -R "YbridOpus.xcframework" ~/Downloads/
-          echo "XCFramework created at:"
+          cp -R YbridOpus.xcframework ~/Downloads/
+          echo "XCFramework installed:"
           ls -la ~/Downloads/YbridOpus.xcframework
 
       - name: 编译 iOS
@@ -125,11 +63,8 @@ jobs:
 
       - name: 打包 IPA
         run: |
-          # 找到 .app 文件
           APP_PATH=$(find build -name "xiaozhi.app" -type d | head -1)
           echo "Found app at: $APP_PATH"
-          
-          # 创建 Payload 并打包
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
           zip -r xiaozhi.ipa Payload
