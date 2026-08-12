@@ -40,6 +40,23 @@ jobs:
           echo "==> 可用 SDK"
           xcodebuild -showsdks 2>&1 | grep -i iphoneos || true
 
+      # 工程引用了第三方框架 YbridOpus.xcframework（libopus 1.3.1 的 Swift 封装，
+      # 用于语音 Opus 编解码），作者未将其纳入仓库，路径写死在 ~/Downloads。
+      # 这里从上游发布包下载并解压到该路径，使编译/打包能够继续。
+      - name: Fetch YbridOpus XCFramework
+        run: |
+          set -euo pipefail
+          DOWNLOADS_DIR="$GITHUB_WORKSPACE/../../Downloads"
+          mkdir -p "$DOWNLOADS_DIR"
+          echo "==> 下载 YbridOpus.xcframework (ybrid/opus-swift 0.8.0) 到 $DOWNLOADS_DIR"
+          curl -fSL -o /tmp/YbridOpus.xcframework.zip \
+            https://github.com/ybrid/opus-swift/releases/download/0.8.0/YbridOpus.xcframework.zip
+          unzip -o -q /tmp/YbridOpus.xcframework.zip -d "$DOWNLOADS_DIR"
+          echo "==> 解压结果:"
+          ls -la "$DOWNLOADS_DIR/YbridOpus.xcframework"
+          echo "==> 框架包含的切片:"
+          find "$DOWNLOADS_DIR/YbridOpus.xcframework" -maxdepth 3 -name '*.framework' -o -maxdepth 3 -name '*.a' | head
+
       # 单个步骤内判断：若仓库配置了签名 Secrets 则走签名路径，否则走未签名路径。
       # （GitHub 不允许在 if: 条件里直接引用 secrets 上下文，故用 shell 判断。）
       - name: Build & Package IPA
@@ -98,7 +115,7 @@ jobs:
 
           xcodebuild build "${XCB_ARGS[@]}"
 
-          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name xiaozhi.app -path "*iphoneos*" 2>/dev/null | head -1)
+          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name xiaozhi.app 2>/dev/null | head -1)
           if [ -z "$APP" ] || [ ! -d "$APP" ]; then
             echo "::error::未找到编译产物 xiaozhi.app"
             find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.app" 2>/dev/null | head || true
