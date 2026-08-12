@@ -121,6 +121,23 @@ jobs:
             find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.app" 2>/dev/null | head || true
             exit 1
           fi
+
+          # 未签名路径：剥离嵌入框架里的非 arm64 切片（如 32 位 arm），
+          # 否则多数签名工具/真机会在签名或安装阶段失败（曾报「无法连接服务器」）。
+          if [ "$SIGNED" != true ]; then
+            echo "==> 精简嵌入框架架构（仅保留 arm64）"
+            while IFS= read -r fw; do
+              [ -d "$fw" ] || continue
+              bin="$fw/$(basename "$fw" .framework)"
+              [ -f "$bin" ] || continue
+              info=$(xcrun lipo -info "$bin" 2>/dev/null || true)
+              if echo "$info" | grep -q "fat file"; then
+                xcrun lipo -thin arm64 "$bin" -output "$bin.thin" && mv "$bin.thin" "$bin" \
+                  && echo "    已精简: $bin"
+              fi
+            done < <(find "$APP/Frameworks" -name '*.framework')
+          fi
+
           cd "$(dirname "$APP")"
           mkdir -p Payload
           cp -r xiaozhi.app Payload/
