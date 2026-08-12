@@ -115,7 +115,7 @@ jobs:
 
           xcodebuild build "${XCB_ARGS[@]}"
 
-          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name xiaozhi.app 2>/dev/null | head -1)
+          APP=$(find "$GITHUB_WORKSPACE/build" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name xiaozhi.app 2>/dev/null | head -1)
           if [ -z "$APP" ] || [ ! -d "$APP" ]; then
             echo "::error::未找到编译产物 xiaozhi.app"
             find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.app" 2>/dev/null | head || true
