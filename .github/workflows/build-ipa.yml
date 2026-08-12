@@ -31,6 +31,15 @@ jobs:
       - name: Project info
         run: xcodebuild -list -project xiaozhi.xcodeproj
 
+      - name: Diagnostics (architectures)
+        run: |
+          echo "==> 查找静态库并查看架构"
+          find . -name "*.a" -not -path "*/.*" | while read f; do
+            echo "--- $f"; xcrun lipo -info "$f" 2>&1 || true
+          done
+          echo "==> 可用 SDK"
+          xcodebuild -showsdks 2>&1 | grep -i iphoneos || true
+
       # 单个步骤内判断：若仓库配置了签名 Secrets 则走签名路径，否则走未签名路径。
       # （GitHub 不允许在 if: 条件里直接引用 secrets 上下文，故用 shell 判断。）
       - name: Build & Package IPA
@@ -73,7 +82,6 @@ jobs:
             -configuration "$CONFIG"
             -sdk iphoneos
             -destination 'generic/platform=iOS'
-            -derivedDataPath "$RUNNER_TEMP/build"
           )
           if [ "$SIGNED" = true ]; then
             XCB_ARGS+=(PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID")
@@ -90,10 +98,10 @@ jobs:
 
           xcodebuild build "${XCB_ARGS[@]}"
 
-          APP="$RUNNER_TEMP/build/Build/Products/$CONFIG-iphoneos/xiaozhi.app"
-          if [ ! -d "$APP" ]; then
-            echo "::error::未找到编译产物 $APP"
-            ls -R "$RUNNER_TEMP/build/Build/Products" || true
+          APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name xiaozhi.app -path "*iphoneos*" 2>/dev/null | head -1)
+          if [ -z "$APP" ] || [ ! -d "$APP" ]; then
+            echo "::error::未找到编译产物 xiaozhi.app"
+            find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.app" 2>/dev/null | head || true
             exit 1
           fi
           cd "$(dirname "$APP")"
